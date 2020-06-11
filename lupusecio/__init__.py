@@ -1,36 +1,22 @@
-"""
-class XT2(LupusecSystem):
-    def __init__(self, username, password, url):
-        super().__init__(username, password, url)
+import requests
+import demjson
 
-    def getDeviceList(self):w
-        sensorList = self.doGet('/deviceListGet')['senrows']
-        for device in sensorList:    
-            deviceName = device['name']
-            deviceId = device['zone']
-            deviceTamper = False if int(device['tamper_ok']) else True
+class LupusecSystem(object):
 
-            if device['type'] not in XT2_CONST.TYPES:
-                deviceType = 'UNKNOWN'
-            else:
-                deviceType = XT2_CONST.TYPES[device['type']]
+    def __init__(self, username, password, url, unverified_ssl=False):
+        self._session = requests.Session()
+        self._alarm_panel_url = url
+        self._session.auth = (username, password)
+        self.sensors = []
 
-            if deviceType in GENERAL.BINARY_SENSOR_TYPES:
-                status = XT2_CONST.STATUS[device['status']]
-                lupuDev = BinaryDevice(status, deviceId, deviceName, deviceType, deviceTamper)
-            else:
-                lupuDev = Device(deviceId, deviceName, deviceType, deviceTamper)
-
-            self.sensors.append(lupuDev)  
-        return self.sensors
-
-    def getAlarmPanelStatus(self):
-        return self.doGet('/panelCondGet')
-    
-    def doGet(self, url):
-        jsData = super().doGet(url)
-        return json.loads(self.__clean_json(jsData))
+    def doGet(self, endpoint):
+        response = self._session.get(self._alarm_panel_url + '/action/' + endpoint, timeout=15)
+        jsData = self.__clean_json(response.text)
+        return demjson.decode(jsData)
 
     def __clean_json(self, textdata):
-        return textdata.replace('\t', '')
-"""
+            textdata = textdata.replace("\t", "")
+            if textdata.startswith("/*-secure-"):
+                textdata = textdata[10:-2]
+            
+            return textdata

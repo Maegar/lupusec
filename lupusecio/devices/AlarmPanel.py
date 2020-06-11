@@ -35,6 +35,7 @@ class AlarmPanel(GenericDevice):
 
 class XT1AlarmPanel(AlarmPanel):
 
+    ACTION_HISTORY_GET = 'historyGet'
     ACTION_SENSOR_LIST_GET = 'sensorListGet'
     ACTION_PANEL_CONDITION_ENDPOINT = 'panelCondGet'
 
@@ -46,7 +47,7 @@ class XT1AlarmPanel(AlarmPanel):
               'Geschlossen': GENERAL.SensorStatus.CLOSED, 
               'Offen': GENERAL.SensorStatus.OPEN}
     
-    BATTERY_STATUS = {'': GENERAL.BatteryStatus.NONE,
+    BATTERY_STATUS = {'': GENERAL.BatteryStatus.NORMAL,
                       'Normal': GENERAL.BatteryStatus.NORMAL,
                       'Fehler': GENERAL.BatteryStatus.TROUBLE}
 
@@ -68,24 +69,19 @@ class XT1AlarmPanel(AlarmPanel):
 
     def doUpdatePanelCond(self):
         panelConditions = self._lupusecSystem.doGet(self.ACTION_PANEL_CONDITION_ENDPOINT)
-        self._mode = self._evaluateMode(panelConditions)
-        self._battery = self._evaluateBattery(panelConditions)
-        self._tamper = self._evaluateTamper(panelConditions)
-
-    def _evaluateMode(self, panelConditions):
-        return self._evaluatePanelCondition(panelConditions, 'mode_st', self.MODES)
-
-    def _evaluateBattery(self, panelConditions):
-        return self._evaluatePanelCondition(panelConditions, 'battery', self.BATTERY_STATUS)
-    
-    def _evaluateTamper(self, panelConditions):
-        return self._evaluatePanelCondition(panelConditions, 'tamper', self.TAMPER_STATUS)
+        self._mode = self._evaluatePanelCondition(panelConditions, 'mode_st', self.MODES)
+        self._battery = self._evaluatePanelCondition(panelConditions, 'battery', self.BATTERY_STATUS)
+        self._tamper = self._evaluatePanelCondition(panelConditions, 'tamper', self.TAMPER_STATUS)
 
     def _evaluatePanelCondition(self, panelConditions, field, enum):
         if panelConditions['updates'][field] not in enum:
             return 'UNKNOWN'
         else:
             return enum[panelConditions['updates'][field]] 
+
+    def doUpgrade(self):
+        super().doUpdate()
+        self.doUpdatePanelCond
 
     def doUpdateSensors(self):
         sensorList = self._lupusecSystem.doGet('sensorListGet')['senrows']
@@ -95,36 +91,37 @@ class XT1AlarmPanel(AlarmPanel):
             deviceId = device['no']
             deviceZoneId = device ['zone']
 
-            if device['type'] not in self.TYPES:
-                deviceType = 'UNKNOWN'
-            else:
-                deviceType = self.TYPES[device['type']]
+            def _evaluateInType(fieldName, enum):
+                if device[fieldName] not in enum:
+                    return 'UNKNOWN'
+                else:
+                    return enum[device[fieldName]]
+
+            deviceType = _evaluateInType('type', self.TYPES)
+            deviceBattery = _evaluateInType('battery', self.BATTERY_STATUS)
+            deviceTamper = _evaluateInType('tamp', self.TAMPER_STATUS)
 
             _device = self._sensors.get(deviceId)
+            _isUpdate = True if _device else False
             if deviceType in GENERAL.BINARY_SENSOR_TYPES:
                 status = self.STATUS[device['cond']]
-                if _device:
-                    _device.setStatus(status)
-                else:
-                    lupuDev = BinarySensor(deviceName, deviceType, deviceZoneId, status)
+                if not _isUpdate:
+                    _device = BinarySensor(deviceName, deviceType, deviceZoneId, status)
+
+                _device.setStatus(status)
+
             else:
-                lupuDev = GenericZoneDevice(deviceName, deviceType, deviceZoneId)
+                _device = GenericZoneDevice(deviceName, deviceType, deviceZoneId)
 
-            if not _device:
-                self._sensors[deviceId] = lupuDev
-        
-
-    def isArm(self):
-        return self._mode == GENERAL.Mode.ARM
-
-    def isDisarm(self):
-        return self._mode == GENERAL.Mode.DISARM
-
-    def isHome(self):
-        return self._mode == GENERAL.Mode.HOME
-
-    def getMode(self):
-        return self._mode
+            _device.setBattery(deviceBattery)
+            _device.setTamper(deviceTamper)
+            if not _isUpdate:
+                self._sensors[deviceId] = _device
+ 
+    def doUpdateHistory(self):
+        self._history = []
+        for entry in self._lupusecSystem.doGet(self.ACTION_HISTORY_GET)['hisrows']:
+            self._history.append({'date': entry['d'], 'time': entry['t'], 'Sensor': entry['s'], 'Event': entry['a']})
 
     def __str__(self):
         return "%s, Mode: %s" % (super().__str__(), self._mode)
@@ -133,24 +130,78 @@ class XT1AlarmPanel(AlarmPanel):
 
 class XT2AlarmPanel(AlarmPanel):
 
+    ACTION_HISTORY_GET = 'historyGet'
     ACTION_SENSOR_LIST_GET = 'sensorListGet'
     ACTION_PANEL_CONDITION_GET = 'panelCondGet'
 
-    MODES = {'Arm': GENERAL.Mode.ARM, 
-             'Home': GENERAL.Mode.HOME, 
-             'Disarm': GENERAL.Mode.DISARM}
+    MODES = {r'{AREA_MODE_0}': GENERAL.Mode.ARM, 
+             r'{AREA_MODE_1}': GENERAL.Mode.HOME, 
+             r'{AREA_MODE_2}': GENERAL.Mode.DISARM}
 
     STATUS = {r'{WEB_MSG_DC_CLOSE}': GENERAL.SensorStatus.CLOSED, 
               r'{WEB_MSG_DC_OPEN}': GENERAL.SensorStatus.OPEN}
+    
+    BATTERY_STATUS = {True: GENERAL.BatteryStatus.NORMAL,
+                      False: GENERAL.BatteryStatus.TROUBLE}
 
     TYPES = {4: GENERAL.DeviceType.TYPE_WINDOW_SENSOR,
              37: GENERAL.DeviceType.TYPE_KEY_PAD,
              23: GENERAL.DeviceType.TYPE_SIRENE,
              46: GENERAL.DeviceType.TYPE_SIRENE,}
 
-    def __init__(self, name, lupusecSystem):
+    def __init__(self, lupusecSystem):
         super().__init__("XT2 Zentrale", lupusecSystem)
-        #self._mode_area1 = resp
-        #self._mode_area2 = resp
+        self.doUpdatePanelCond()
+    
+    def doUpdateSensors(self):
+        sensorList = self._lupusecSystem.doGet(self.ACTION_SENSOR_LIST_GET)['senrows']
+        for device in sensorList:    
+            deviceName = device['name']
+            deviceZoneId = device['zone']
+            deviceTamper = False if int(device['tamper_ok']) else True
+            deviceBattery = False if int(device['battery_ok']) else True
+
+            if device['type'] not in self.TYPES:
+                deviceType = 'UNKNOWN'
+            else:
+                deviceType = self.TYPES[device['type']]
+
+            _device = self._sensors.get(deviceZoneId)
+            _isUpdate = True if _device else False
+            if deviceType in GENERAL.BINARY_SENSOR_TYPES:
+                status = self.STATUS[device['status']]
+                if not _isUpdate:
+                    _device = BinarySensor(deviceName, deviceType, deviceZoneId, status)
+
+                _device.setStatus(status)
+
+            else:
+                _device = GenericZoneDevice(deviceName, deviceType, deviceZoneId)
+
+            _device.setBattery(deviceBattery)
+            _device.setTamper(deviceTamper)
+            if not _isUpdate:
+                self._sensors[deviceZoneId] = _device
+
+    def doUpdatePanelCond(self):
+        panelConditions = self._lupusecSystem.doGet(self.ACTION_PANEL_CONDITION_GET)
+        self._mode_area1 = self._evaluatePanelCondition(panelConditions, 'mode_a1', self.MODES)
+        self._mode_area2 = self._evaluatePanelCondition(panelConditions, 'mode_a2', self.MODES)
+        self._battery = self._evaluatePanelCondition(panelConditions, 'battery_ok', {'1': True, '0': False})
+        self._tamper = self._evaluatePanelCondition(panelConditions, 'tamper_ok', {'1': True, '0': False})
+
+    def _evaluatePanelCondition(self, panelConditions, field, enum):
+        if panelConditions['updates'][field] not in enum:
+            return 'UNKNOWN'
+        else:
+            return enum[panelConditions['updates'][field]]
+    
+    def doUpdateHistory(self):
+        self._history = []
+        for entry in self._lupusecSystem.doGet(self.ACTION_HISTORY_GET)['hisrows']:
+            self._history.append({'date': entry['d'], 'time': entry['t'], 'Sensor': entry['s'], 'Event': entry['a']})
+    
+    def __str__(self):
+        return "%s, mode_area1: %s, mode_area2: %s" % (super().__str__(), self._mode_area1, self._mode_area2)
 
    
