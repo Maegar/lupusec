@@ -3,8 +3,9 @@ import demjson
 
 class LupusecSystem(object):
 
-    def __init__(self, username, password, url, unverified_ssl=False):
+    def __init__(self, username, password, url, verifySsl=True):
         self._session = requests.Session()
+        self._session.verify=verifySsl
         self._alarm_panel_url = url
         self._session.auth = (username, password)
         self.sensors = []

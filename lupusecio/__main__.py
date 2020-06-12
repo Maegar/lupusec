@@ -8,6 +8,7 @@ def get_arguments():
     _addArgument(parser, '-p', '--password', 'Password for Lupusec UI')
     _addArgument(parser, '-a', '--address', 'Lupus panel http Lupusec adress')
     _addArgument(parser, '-x', '--xt-version', 'Lupus XT version 1 or 2')
+    _addAction(parser, '--no-ssl-verify', 'In case of SSL connection if certificate should be verified or not')
     _addAction(parser, '--history', 'Lupus get event history')
     _addAction(parser, '--sensors', 'Lupus get sensors')
     _addAction(parser, '--alarm-panel', 'Lupus get panel status')
@@ -37,15 +38,16 @@ def call():
     if args.xt_version not in {'1', '2'}:
         raise Exception("Only XT version 1 and 2 are supported")
 
-    system = lupusecio.LupusecSystem(args.username, args.password, args.address)
+    sslVerify = not args.no_ssl_verify
+    system = lupusecio.LupusecSystem(args.username, args.password, args.address, sslVerify)
 
     if args.xt_version == '1':
         xt = lupusecio.devices.XT1AlarmPanel(system)
     else:
         xt = lupusecio.devices.XT2AlarmPanel(system)
     
-    
-    reportAll = True if not (args.alarm_panel & args.history & args.sensors) else False
+
+    reportAll = not (args.alarm_panel | args.history | args.sensors)
 
     if args.alarm_panel | reportAll:
         xt.doUpdatePanelCond()
