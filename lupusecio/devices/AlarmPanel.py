@@ -1,3 +1,18 @@
+#!/usr/bin/env python3
+# Copyright 2020 Paul Proske
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     https://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import requests
 
 from lupusecio.devices.Generic import GenericDevice, GenericZoneDevice
@@ -6,31 +21,31 @@ import lupusecio.constants as GENERAL
 
 class AlarmPanel(GenericDevice):
 
-    def __init__(self, name, lupusecSystem):
+    def __init__(self, name, lupusec_system):
         super().__init__(name, GENERAL.DeviceType.TYPE_ALARM_PANEL)
-        self._lupusecSystem = lupusecSystem
+        self._lupusec_system = lupusec_system
         self._sensors = {}
         self._history = None
-        self.doUpdate()
+        self.do_update()
 
-    def getHistory(self):
+    def get_history(self):
         return self._history
 
-    def getSensors(self):
+    def get_sensors(self):
         return self._sensors
 
-    def doUpdateHistory(self):
+    def do_update_history(self):
         pass
 
-    def doUpdateSensors(self):
+    def do_update_sensors(self):
         pass
 
-    def doUpdateCameras(self):
+    def do_update_cameras(self):
         pass
 
-    def doUpdate(self):
-        self.doUpdateHistory()
-        self.doUpdateSensors()
+    def do_update(self):
+        self.do_update_history()
+        self.do_update_sensors()
         #doUpdateCameras()
 
 class XT1AlarmPanel(AlarmPanel):
@@ -65,62 +80,62 @@ class XT1AlarmPanel(AlarmPanel):
 
     def __init__(self, lupusecSystem):
         super().__init__("XT 1 Zentrale", lupusecSystem)
-        self.doUpdatePanelCond()
+        self.do_update_panel_cond()
 
-    def doUpdatePanelCond(self):
-        panelConditions = self._lupusecSystem.doGet(self.ACTION_PANEL_CONDITION_ENDPOINT)
-        self._mode = self._evaluatePanelCondition(panelConditions, 'mode_st', self.MODES)
-        self._battery = self._evaluatePanelCondition(panelConditions, 'battery', self.BATTERY_STATUS)
-        self._tamper = self._evaluatePanelCondition(panelConditions, 'tamper', self.TAMPER_STATUS)
+    def do_update_panel_cond(self):
+        panel_conditions = self._lupusec_system.do_get(self.ACTION_PANEL_CONDITION_ENDPOINT)
+        self._mode = self._evaluate_panel_condition(panel_conditions, 'mode_st', self.MODES)
+        self._battery = self._evaluate_panel_condition(panel_conditions, 'battery', self.BATTERY_STATUS)
+        self._tamper = self._evaluate_panel_condition(panel_conditions, 'tamper', self.TAMPER_STATUS)
 
-    def _evaluatePanelCondition(self, panelConditions, field, enum):
-        if panelConditions['updates'][field] not in enum:
+    def _evaluate_panel_condition(self, panel_conditions, field, enum):
+        if panel_conditions['updates'][field] not in enum:
             return 'UNKNOWN'
         else:
-            return enum[panelConditions['updates'][field]] 
+            return enum[panel_conditions['updates'][field]] 
 
-    def doUpgrade(self):
-        super().doUpdate()
-        self.doUpdatePanelCond
+    def do_upgrade(self):
+        super().do_update()
+        self.do_update_panel_cond
 
-    def doUpdateSensors(self):
-        sensorList = self._lupusecSystem.doGet('sensorListGet')['senrows']
-        for device in sensorList:
+    def do_update_sensors(self):
+        sensor_list = self._lupusec_system.do_get(self.ACTION_SENSOR_LIST_GET)['senrows']
+        for device in sensor_list:
             
-            deviceName = device['name']
-            deviceId = device['no']
-            deviceZoneId = device ['zone']
+            device_name = device['name']
+            device_id = device['no']
+            device_zone_id = device ['zone']
 
-            def _evaluateInType(fieldName, enum):
-                if device[fieldName] not in enum:
+            def _evaluate_in_type(field_name, enum):
+                if device[field_name] not in enum:
                     return 'UNKNOWN'
                 else:
-                    return enum[device[fieldName]]
+                    return enum[device[field_name]]
 
-            deviceType = _evaluateInType('type', self.TYPES)
-            deviceBattery = _evaluateInType('battery', self.BATTERY_STATUS)
-            deviceTamper = _evaluateInType('tamp', self.TAMPER_STATUS)
+            device_type = _evaluate_in_type('type', self.TYPES)
+            device_battery = _evaluate_in_type('battery', self.BATTERY_STATUS)
+            device_tamper = _evaluate_in_type('tamp', self.TAMPER_STATUS)
 
-            _device = self._sensors.get(deviceId)
-            _isUpdate = True if _device else False
-            if deviceType in GENERAL.BINARY_SENSOR_TYPES:
+            _device = self._sensors.get(device_id)
+            _is_update = True if _device else False
+            if device_type in GENERAL.BINARY_SENSOR_TYPES:
                 status = self.STATUS[device['cond']]
-                if not _isUpdate:
-                    _device = BinarySensor(deviceName, deviceType, deviceZoneId, status)
-
-                _device.setStatus(status)
+                if not _is_update:
+                    _device = BinarySensor(device_name, device_type, device_zone_id, status)
+                else:
+                    _device.set_status(status)
 
             else:
-                _device = GenericZoneDevice(deviceName, deviceType, deviceZoneId)
+                _device = GenericZoneDevice(device_name, device_type, device_zone_id)
 
-            _device.setBattery(deviceBattery)
-            _device.setTamper(deviceTamper)
-            if not _isUpdate:
-                self._sensors[deviceId] = _device
+            _device.setBattery(device_battery)
+            _device.setTamper(device_tamper)
+            if not _is_update:
+                self._sensors[device_id] = _device
  
-    def doUpdateHistory(self):
+    def do_udate_history(self):
         self._history = []
-        for entry in self._lupusecSystem.doGet(self.ACTION_HISTORY_GET)['hisrows']:
+        for entry in self._lupusec_system.do_get(self.ACTION_HISTORY_GET)['hisrows']:
             self._history.append({'date': entry['d'], 'time': entry['t'], 'Sensor': entry['s'], 'Event': entry['a']})
 
     def __str__(self):
@@ -131,7 +146,7 @@ class XT1AlarmPanel(AlarmPanel):
 class XT2AlarmPanel(AlarmPanel):
 
     ACTION_HISTORY_GET = 'historyGet'
-    ACTION_SENSOR_LIST_GET = 'sensorListGet'
+    ACTION_SENSOR_LIST_GET = 'deviceListGet'
     ACTION_PANEL_CONDITION_GET = 'panelCondGet'
 
     MODES = {r'{AREA_MODE_0}': GENERAL.Mode.ARM, 
@@ -149,56 +164,56 @@ class XT2AlarmPanel(AlarmPanel):
              23: GENERAL.DeviceType.TYPE_SIRENE,
              46: GENERAL.DeviceType.TYPE_SIRENE,}
 
-    def __init__(self, lupusecSystem):
-        super().__init__("XT2 Zentrale", lupusecSystem)
-        self.doUpdatePanelCond()
+    def __init__(self, lupusec_system):
+        super().__init__("XT2 Zentrale", lupusec_system)
+        self.do_update_panel_cond()
     
-    def doUpdateSensors(self):
-        sensorList = self._lupusecSystem.doGet(self.ACTION_SENSOR_LIST_GET)['senrows']
-        for device in sensorList:    
-            deviceName = device['name']
-            deviceZoneId = device['zone']
-            deviceTamper = False if int(device['tamper_ok']) else True
-            deviceBattery = False if int(device['battery_ok']) else True
+    def do_update_sensors(self):
+        sensor_list = self._lupusec_system.do_get(self.ACTION_SENSOR_LIST_GET)['senrows']
+        for device in sensor_list:    
+            device_name = device['name']
+            device_zone_id = device['zone']
+            device_tamper = False if int(device['tamper_ok']) else True
+            device_battery = False if int(device['battery_ok']) else True
 
             if device['type'] not in self.TYPES:
-                deviceType = 'UNKNOWN'
+                device_type = 'UNKNOWN'
             else:
-                deviceType = self.TYPES[device['type']]
+                device_type = self.TYPES[device['type']]
 
-            _device = self._sensors.get(deviceZoneId)
-            _isUpdate = True if _device else False
-            if deviceType in GENERAL.BINARY_SENSOR_TYPES:
+            _device = self._sensors.get(device_zone_id)
+            _is_update = True if _device else False
+            if device_type in GENERAL.BINARY_SENSOR_TYPES:
                 status = self.STATUS[device['status']]
-                if not _isUpdate:
-                    _device = BinarySensor(deviceName, deviceType, deviceZoneId, status)
-
-                _device.setStatus(status)
+                if not _is_update:
+                    _device = BinarySensor(device_name, device_type, device_zone_id, status)
+                else:
+                    _device.set_status(status)
 
             else:
-                _device = GenericZoneDevice(deviceName, deviceType, deviceZoneId)
+                _device = GenericZoneDevice(device_name, device_type, device_zone_id)
 
-            _device.setBattery(deviceBattery)
-            _device.setTamper(deviceTamper)
-            if not _isUpdate:
-                self._sensors[deviceZoneId] = _device
+            _device.setBattery(device_battery)
+            _device.setTamper(device_tamper)
+            if not _is_update:
+                self._sensors[device_zone_id] = _device
 
-    def doUpdatePanelCond(self):
-        panelConditions = self._lupusecSystem.doGet(self.ACTION_PANEL_CONDITION_GET)
-        self._mode_area1 = self._evaluatePanelCondition(panelConditions, 'mode_a1', self.MODES)
-        self._mode_area2 = self._evaluatePanelCondition(panelConditions, 'mode_a2', self.MODES)
-        self._battery = self._evaluatePanelCondition(panelConditions, 'battery_ok', {'1': True, '0': False})
-        self._tamper = self._evaluatePanelCondition(panelConditions, 'tamper_ok', {'1': True, '0': False})
+    def do_update_panel_cond(self):
+        panel_conditions = self._lupusec_system.do_get(self.ACTION_PANEL_CONDITION_GET)
+        self._mode_area1 = self._evaluate_panel_condition(panel_conditions, 'mode_a1', self.MODES)
+        self._mode_area2 = self._evaluate_panel_condition(panel_conditions, 'mode_a2', self.MODES)
+        self._battery = self._evaluate_panel_condition(panel_conditions, 'battery_ok', {'1': True, '0': False})
+        self._tamper = self._evaluate_panel_condition(panel_conditions, 'tamper_ok', {'1': True, '0': False})
 
-    def _evaluatePanelCondition(self, panelConditions, field, enum):
-        if panelConditions['updates'][field] not in enum:
+    def _evaluate_panel_condition(self, panel_conditions, field, enum):
+        if panel_conditions['updates'][field] not in enum:
             return 'UNKNOWN'
         else:
-            return enum[panelConditions['updates'][field]]
+            return enum[panel_conditions['updates'][field]]
     
     def doUpdateHistory(self):
         self._history = []
-        for entry in self._lupusecSystem.doGet(self.ACTION_HISTORY_GET)['hisrows']:
+        for entry in self._lupusec_system.do_get(self.ACTION_HISTORY_GET)['hisrows']:
             self._history.append({'date': entry['d'], 'time': entry['t'], 'Sensor': entry['s'], 'Event': entry['a']})
     
     def __str__(self):

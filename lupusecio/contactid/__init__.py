@@ -1,3 +1,18 @@
+#!/usr/bin/env python3
+# Copyright 2020 Paul Proske
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     https://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import sys
 import re
 
@@ -10,15 +25,15 @@ class ContactId:
 
         if match:
             self.subscriber = match.group(1).strip()
-            self.qualifier = match.group(2)
+            self.qualifier = QUALIFIER[match.group(2)]
             self.event = match.group(3)
-            self.eventtext = Events[match.group(3)]
+            self.eventtext = EVENTS[match.group(3)]
             self.group = match.group(4)
             self.sensor = match.group(5)
             self.checksum = match.group(6)
-            self.valid = self.__calculateFletcherCheckSum(data, 16) == (match[6])
+            self.valid = self._calculate_fletcher_checksum(data, 16) == (match[6])
 
-    def __calculateFletcherCheckSum(self, data, len):
+    def _calculate_fletcher_checksum(self, data, len):
         sum1 = 0
         sum2 = 0
         i = 1
@@ -35,13 +50,13 @@ class ContactId:
                 i += 1
         return hex(sum2 << 8 | sum1).replace('0x','').upper()
 
-Qualifier = {
+QUALIFIER = {
     '1': 'New Event / opening',
     '3': 'New Restore / closing',
     '6': 'Previously reported condition still present (Status report)'
 }
 
-Events = {
+EVENTS = {
     '100': 'Medical',
     '101': 'Personal Emergency',
     '102': 'Fail to report in',
