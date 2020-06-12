@@ -15,6 +15,7 @@
 
 import requests
 import demjson
+import json
 
 class LupusecSystem(object):
 
@@ -25,10 +26,19 @@ class LupusecSystem(object):
         self._session.auth = (username, password)
         self.sensors = []
 
-    def do_get(self, endpoint):
+    def do_get_js(self, endpoint):
+        data = self._do_get(endpoint)
+        return demjson.decode(data)
+
+    def do_get_json(self, endpoint):
+        data = self._do_get(endpoint)
+        return json.loads(data)
+    
+    def _do_get(self, endpoint):
         response = self._session.get(self._alarm_panel_url + '/action/' + endpoint, timeout=15)
-        jsData = self.__clean_json(response.text)
-        return demjson.decode(jsData)
+        return self.__clean_json(response.text)
+
+    
 
     def __clean_json(self, textdata):
             textdata = textdata.replace("\t", "")

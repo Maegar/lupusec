@@ -83,7 +83,7 @@ class XT1AlarmPanel(AlarmPanel):
         self.do_update_panel_cond()
 
     def do_update_panel_cond(self):
-        panel_conditions = self._lupusec_system.do_get(self.ACTION_PANEL_CONDITION_ENDPOINT)
+        panel_conditions = self._lupusec_system.do_get_js(self.ACTION_PANEL_CONDITION_ENDPOINT)
         self._mode = self._evaluate_panel_condition(panel_conditions, 'mode_st', self.MODES)
         self._battery = self._evaluate_panel_condition(panel_conditions, 'battery', self.BATTERY_STATUS)
         self._tamper = self._evaluate_panel_condition(panel_conditions, 'tamper', self.TAMPER_STATUS)
@@ -94,12 +94,12 @@ class XT1AlarmPanel(AlarmPanel):
         else:
             return enum[panel_conditions['updates'][field]] 
 
-    def do_upgrade(self):
+    def do_update(self):
         super().do_update()
         self.do_update_panel_cond
 
     def do_update_sensors(self):
-        sensor_list = self._lupusec_system.do_get(self.ACTION_SENSOR_LIST_GET)['senrows']
+        sensor_list = self._lupusec_system.do_get_js(self.ACTION_SENSOR_LIST_GET)['senrows']
         for device in sensor_list:
             
             device_name = device['name']
@@ -128,14 +128,14 @@ class XT1AlarmPanel(AlarmPanel):
             else:
                 _device = GenericZoneDevice(device_name, device_type, device_zone_id)
 
-            _device.setBattery(device_battery)
-            _device.setTamper(device_tamper)
+            _device.set_battery(device_battery)
+            _device.set_tamper(device_tamper)
             if not _is_update:
                 self._sensors[device_id] = _device
  
-    def do_udate_history(self):
+    def do_update_history(self):
         self._history = []
-        for entry in self._lupusec_system.do_get(self.ACTION_HISTORY_GET)['hisrows']:
+        for entry in self._lupusec_system.do_get_js(self.ACTION_HISTORY_GET)['hisrows']:
             self._history.append({'date': entry['d'], 'time': entry['t'], 'Sensor': entry['s'], 'Event': entry['a']})
 
     def __str__(self):
@@ -169,7 +169,7 @@ class XT2AlarmPanel(AlarmPanel):
         self.do_update_panel_cond()
     
     def do_update_sensors(self):
-        sensor_list = self._lupusec_system.do_get(self.ACTION_SENSOR_LIST_GET)['senrows']
+        sensor_list = self._lupusec_system.do_get_json(self.ACTION_SENSOR_LIST_GET)['senrows']
         for device in sensor_list:    
             device_name = device['name']
             device_zone_id = device['zone']
@@ -193,13 +193,13 @@ class XT2AlarmPanel(AlarmPanel):
             else:
                 _device = GenericZoneDevice(device_name, device_type, device_zone_id)
 
-            _device.setBattery(device_battery)
-            _device.setTamper(device_tamper)
+            _device.set_battery(device_battery)
+            _device.set_tamper(device_tamper)
             if not _is_update:
                 self._sensors[device_zone_id] = _device
 
     def do_update_panel_cond(self):
-        panel_conditions = self._lupusec_system.do_get(self.ACTION_PANEL_CONDITION_GET)
+        panel_conditions = self._lupusec_system.do_get_json(self.ACTION_PANEL_CONDITION_GET)
         self._mode_area1 = self._evaluate_panel_condition(panel_conditions, 'mode_a1', self.MODES)
         self._mode_area2 = self._evaluate_panel_condition(panel_conditions, 'mode_a2', self.MODES)
         self._battery = self._evaluate_panel_condition(panel_conditions, 'battery_ok', {'1': True, '0': False})
@@ -211,9 +211,9 @@ class XT2AlarmPanel(AlarmPanel):
         else:
             return enum[panel_conditions['updates'][field]]
     
-    def doUpdateHistory(self):
+    def do_update_history(self):
         self._history = []
-        for entry in self._lupusec_system.do_get(self.ACTION_HISTORY_GET)['hisrows']:
+        for entry in self._lupusec_system.do_get_json(self.ACTION_HISTORY_GET)['hisrows']:
             self._history.append({'date': entry['d'], 'time': entry['t'], 'Sensor': entry['s'], 'Event': entry['a']})
     
     def __str__(self):
