@@ -49,6 +49,9 @@ class ContactId:
                 tlen -= 1
                 i += 1
         return hex(sum2 << 8 | sum1).replace('0x','').upper()
+    
+    def __str__(self):
+        return "Subscriber: %s, Qualifier: %s, Event: %s, EventText: %s, Group: %s, Sensor: %s, ChecksumOk: %s" % (self.subscriber, self.qualifier, self.event, self.eventtext, self.group, self.sensor, self.valid)
 
 QUALIFIER = {
     '1': 'New Event / opening',
