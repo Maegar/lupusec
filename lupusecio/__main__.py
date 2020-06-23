@@ -66,7 +66,7 @@ def call():
 
     if args.alarm_panel | report_all:
         xt.do_update_panel_cond()
-        print('--- Panel conditions ---')
+        print('--- Alarm panel ---')
         print(xt)
         print('\n')
     if args.history | report_all:
@@ -80,7 +80,7 @@ def call():
         print('--- Sensors ---')
         sensors = xt.get_sensors()
         for device in sensors:
-            print("ID: %s, %s" %(device, sensors.get(device)))
+            print(sensors.get(device))
         print('\n')
   
 

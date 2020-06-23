@@ -15,34 +15,26 @@
 
 class GenericDevice(object):
 
-    def __init__(self, name, device_type, battery = None, tamper = False):
-        self._name = name
-        self._tamper = tamper
-        self._battery = battery
-        self._device_type = device_type
+    def __init__(self, area, zone, name, device_type):
+        self.area = area
+        self.zone = zone
+        self.name = name
+        self.device_type = device_type
 
-    def get_battery(self):
-        return self._battery
+    def set_battery(self, is_ok, status=''):
+        self.battery_ok = is_ok
+        self.battery_status = status
+
+    def set_tamper(self, is_ok, status=''):
+        self.tamper_ok = is_ok
+        self.tamper_status = status
+
+    def set_cond(self, is_ok, status=''):
+        self.cond_ok = is_ok
+        self.cond_status = status
     
-    def set_battery(self, status):
-        self._battery = status
-
-
-    def is_tamper(self):
-        return self._tamper
-
-    def set_tamper(self, tamper):
-        self._tamper = tamper
+    def set_status(self, status=''):
+        self.status = status
 
     def __str__(self):
-        return "Type: %s, Name: %s, Battery: %s, Tamper: %d" % (self._device_type, self._name, self._battery, self._tamper)
-
-
-class GenericZoneDevice(GenericDevice):
-    
-    def __init__(self, name, device_type, zone_id):
-        super().__init__(name, device_type)
-        self.zone_id = zone_id
-    
-    def __str__(self):
-        return "Zone: %s, %s" % (self.zone_id, super().__str__())
+        return "Area: %s, Zone: %s, Type: %s, Name: %s, Battery: %s, Tamper: %s, Cond: %s, Status: %s" % (self.area, self.zone, self.device_type, self.name, self.battery_status, self.tamper_status, self.cond_status, self.status)

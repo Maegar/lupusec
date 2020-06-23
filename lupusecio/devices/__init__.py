@@ -14,4 +14,3 @@
 # limitations under the License.
 
 from lupusecio.devices.AlarmPanel import *
-from lupusecio.devices.Sensors import *
