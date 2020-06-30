@@ -13,7 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+""" Device module
+
+Contains specific lupusec devices to retrieve information
+or triggering actions.
+"""
+
 class GenericDevice(object):
+    """ Generic Device Class 
+    
+    Contains the following data:
+    - area ID
+    - zone ID
+    - device type
+    - batter status
+    - condition status
+    - tamper status 
+    """
 
     def __init__(self, area, zone, name, device_type):
         self.area = area
@@ -22,18 +38,22 @@ class GenericDevice(object):
         self.device_type = device_type
 
     def set_battery(self, is_ok, status=''):
+        """ Set battery status values """
         self.battery_ok = is_ok
         self.battery_status = status
 
     def set_tamper(self, is_ok, status=''):
+        """ Set tamper status values """
         self.tamper_ok = is_ok
         self.tamper_status = status
 
     def set_cond(self, is_ok, status=''):
+        """ Set condition status values """
         self.cond_ok = is_ok
         self.cond_status = status
     
     def set_status(self, status=''):
+        """ Set status """
         self.status = status
 
     def __str__(self):

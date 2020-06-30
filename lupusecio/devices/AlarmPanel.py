@@ -13,12 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+""" Alarm panel module
+
+Can be used to retrieve information and trigger actions from alarm panel.
+"""
+
 import requests
 
 from lupusecio.devices.Generic import GenericDevice
 import lupusecio.devices.Translation as TRANS
 
 class AlarmPanel(object):
+    """ Generic alarm panel """
 
     def __init__(self, name, lupusec_system):
         self._name = name
@@ -28,21 +34,27 @@ class AlarmPanel(object):
         self.do_update()
 
     def get_history(self):
+        """ Retrieves history logs """
         return self._history
 
     def get_sensors(self):
+        """ Retrieves all sensors """
         return self._sensors
 
     def do_update_history(self):
+        """ Update the history """
         pass
 
     def do_update_sensors(self):
+        """ Update the sensors """
         pass
 
     def do_update_cameras(self):
+        """ Update the camera settings """
         pass
 
     def do_update(self):
+        """ do update for all """
         self.do_update_history()
         self.do_update_sensors()
         #doUpdateCameras()
@@ -61,12 +73,14 @@ class XT1AlarmPanel(AlarmPanel):
         self.do_update_panel_cond()
 
     def do_update_panel_cond(self):
+        """ Update pandel conditions """
         panel_conditions = self._lupusec_system.do_get_js(self.ACTION_PANEL_CONDITION_ENDPOINT)
         self._mode = panel_conditions['updates']['mode_st']
         self._battery = True if panel_conditions['updates']['battery'] == '' else panel_conditions['updates']['battery']
         self._tamper = True if panel_conditions['updates']['tamper'] == '' else panel_conditions['updates']['tamper']
 
     def do_update(self):
+        """ Update all information """
         super().do_update()
         self.do_update_panel_cond
 
