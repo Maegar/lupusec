@@ -56,7 +56,31 @@ class LupusecSystem(object):
         response = self._session.get(self._alarm_panel_url + '/action/' + endpoint, timeout=15)
         return self._clean_json(response.text)
 
-    
+    def do_post_js(self, endpoint, formdata):
+        """ Perform a post request for a specifc endpoint with the given 
+        content
+
+        Interprete response as java script notation
+        """
+        data = self._do_post(endpoint, formdata)
+        return demjson.decode(data)
+
+    def do_post_json(self, endpoint, formdata):
+        """ Perform a post request for a specifc endpoint with the given 
+        content
+
+        Interprete response as JSON
+        """
+        data = self._do_post(endpoint, formdata)
+        return json.loads(data)
+
+    def _do_post(self, endpoint, formdata):
+        """ Perform a post request for a specifc endpoint with the given 
+        content
+        """
+        response = self._session.post(self._alarm_panel_url + '/action/' + endpoint, data=formdata, timeout=4)
+        print(response.request.body)
+        return self._clean_json(response.text)
 
     def _clean_json(self, textdata):
         """ Clean the body from not complaint data """
