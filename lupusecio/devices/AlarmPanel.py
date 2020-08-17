@@ -84,7 +84,7 @@ class Area(object):
         dataToSend = {'mode':flippedValues[modeToSwitch]}
         if self.areaNo is not None:
             dataToSend.update("area", self.areaNo)
-        request = self.alarmPanel._lupusec_system.do_post_js(self.ACTION_PANEL_CONDITION_ENDPOINT_POST, )
+        request = self.alarmPanel._lupusec_system.do_post_js(self.ACTION_PANEL_CONDITION_ENDPOINT_POST, dataToSend)
 
         return request['result'] == 1
 
