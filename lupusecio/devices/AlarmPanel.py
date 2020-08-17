@@ -54,10 +54,6 @@ class AlarmPanel(object):
         """ Update the camera settings """
         pass
 
-    def get_mode(self, area_no):
-        """ Retrieves the mode for given area """
-        pass
-
     def do_update(self):
         """ do update for all """
         self.do_update_history()
@@ -74,7 +70,7 @@ class Area(object):
     def __init__(self, alarmPanel, panelConditions, areaNo = None):
         self.alarmPanel = alarmPanel
         self.areaNo = areaNo
-        if panelConditions['updates']['alarm_ex'] is 1 or not 'Normal':
+        if panelConditions['updates']['alarm_ex'] == 1 or not 'Normal':
             self._mode = 'TRIGGERED'
         else:
             fieldValue = 'pcondform' + (str(self.areaNo) if self.areaNo is not None else "")
@@ -90,7 +86,7 @@ class Area(object):
             dataToSend.update("area", self.areaNo)
         request = self.alarmPanel._lupusec_system.do_post_js(self.ACTION_PANEL_CONDITION_ENDPOINT_POST, )
 
-        return request['result'] is 1
+        return request['result'] == 1
 
     def get_mode(self):
         return self._mode
@@ -133,7 +129,7 @@ class XT1AlarmPanel(AlarmPanel):
     def do_update_panel_cond(self):
         """ Update pandel conditions """
         self._panel_conditions = self._lupusec_system.do_get_js(self.ACTION_PANEL_CONDITION_ENDPOINT)
-        self._mode_area = Area(self, self._panel_conditions)
+        self.area = Area(self, self._panel_conditions)
         self._battery = True if self._panel_conditions['updates']['battery'] == '' else self._panel_conditions['updates']['battery']
         self._tamper = True if self._panel_conditions['updates']['tamper'] == '' else self._panel_conditions['updates']['tamper']
 
@@ -177,7 +173,7 @@ class XT1AlarmPanel(AlarmPanel):
             self._history.append({'date': entry['d'], 'time': entry['t'], 'Sensor': entry['s'], 'Event': entry['a']})
 
     def __str__(self):
-        return "%s, Mode: %s" % (super().__str__(), self._mode_area.get_mode())
+        return "%s, Mode: %s" % (super().__str__(), self.area.get_mode())
     
 
 class XT2AlarmPanel(AlarmPanel):
@@ -225,8 +221,8 @@ class XT2AlarmPanel(AlarmPanel):
 
     def do_update_panel_cond(self):
         self._panel_conditions = self._lupusec_system.do_get_json(self.ACTION_PANEL_CONDITION_GET)
-        self.mode_area1 = Area(self, self._panel_conditions, 1)
-        self.mode_area2 = Area(self, self._panel_conditions, 2)
+        self.area1 = Area(self, self._panel_conditions, 1)
+        self.area2 = Area(self, self._panel_conditions, 2)
         self._battery = self._evaluate_panel_condition(self._panel_conditions, 'battery_ok', {'1': True, '0': False})
         self._tamper = self._evaluate_panel_condition(self._panel_conditions, 'tamper_ok', {'1': True, '0': False})
 
@@ -247,4 +243,4 @@ class XT2AlarmPanel(AlarmPanel):
             self._history.append({'date': entry['time'], 'time': entry['time'], 'Sensor': entry['name'], 'Type': TRANS.XT2_TRANSLATIONS[entry['type_f']], 'Event': event})
     
     def __str__(self):
-        return "%s, mode_area1: %s, mode_area2: %s" % (super().__str__(), self._mode_area1.get_mode(), self._mode_area2.get_mode())
+        return "%s, mode_area1: %s, mode_area2: %s" % (super().__str__(), self.area1.get_mode(), self.area2.get_mode())
