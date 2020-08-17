@@ -109,6 +109,21 @@ class Area(object):
     def is_triggered(self):
         return self._mode == 'TRIGGERED'
 
+    def set_arm(self):
+        self.set_mode('ARM')
+
+    def set_disarm(self):
+        self.set_mode('DISARM')
+
+    def set_home(self):
+        self.set_mode('HOME')
+
+    def set_home2(self):
+        self.set_mode('HOME1')
+
+    def set_home3(self):
+        self.set_mode('HOME2')
+
     def __str__(self):
         return json.dumps(self.set_mode(self._mode))  
     
